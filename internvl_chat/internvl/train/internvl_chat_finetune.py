@@ -1100,7 +1100,6 @@ def main():
         eval_dataset=None,
         tokenizer=tokenizer,
         data_collator=collator,
-        warm_steps=8,
         use_cuda_graph=model_args.use_cuda_graph,
         cuda_graph_module=model_args.cuda_graph_module,
         cuda_graph_layer_num=model_args.cuda_graph_layer_num,
