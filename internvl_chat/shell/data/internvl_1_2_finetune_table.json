@@ -1,0 +1,9 @@
+{
+  "sharegpt4v_instruct_gpt4-vision_cap100k": {
+    "root": "/nas/qianhao/data/nougat/nougat/arxiv/",
+    "annotation": "/nas/qianhao/data/nougat/nougat/arxiv/table_latex_150w_241016_out/labels_llm/train1.jsonl",
+    "data_augment": false,
+    "repeat_time": 1,
+    "length": 1209996
+  }
+}
