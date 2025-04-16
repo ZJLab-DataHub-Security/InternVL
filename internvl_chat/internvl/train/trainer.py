@@ -3,7 +3,6 @@ from transformers import Trainer
 class CustomTrainer(Trainer):
     def __init__(self, use_cuda_graph = False,cuda_graph_module:str = "self_attn" ,cuda_graph_layer_num=0,**kwargs):
         super().__init__(**kwargs)
-
         self.use_cuda_graph = use_cuda_graph
         self.cuda_graph_module = cuda_graph_module
         self.cuda_graph_layer_num = cuda_graph_layer_num
