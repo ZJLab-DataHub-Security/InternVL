@@ -7,7 +7,6 @@
 import warnings
 from typing import List, Optional, Tuple, Union
 
-import torch
 import torch.distributed as dist
 import torch.utils.checkpoint
 import transformers
@@ -157,7 +156,7 @@ class InternVLChatModel(PreTrainedModel):
             loss_weight: Optional[List] = None,
             loss_reduction_all_gather: Optional[bool] = False,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict 
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
         
         image_flags = image_flags.squeeze(-1)
         input_embeds = self.language_model.get_input_embeddings()(input_ids).clone()

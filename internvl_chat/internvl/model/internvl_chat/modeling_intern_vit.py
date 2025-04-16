@@ -330,7 +330,6 @@ class InternVisionEncoder(nn.Module):
             return_dict (`bool`, *optional*):
                 Whether or not to return a [`~utils.ModelOutput`] instead of a plain tuple.
         """
-        
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
@@ -355,9 +354,7 @@ class InternVisionEncoder(nn.Module):
 
         if output_hidden_states:
             encoder_states = encoder_states + (hidden_states,)
-        
-        
-        
+         
         if not return_dict:
             return tuple(v for v in [hidden_states, encoder_states] if v is not None)
         return BaseModelOutput(

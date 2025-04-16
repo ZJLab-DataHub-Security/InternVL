@@ -1,8 +1,6 @@
-import time
 import torch
 import torch.nn.functional as F
 from typing import Optional, Tuple, List, Union
-
 from ..model.internvl_chat.modeling_internvl_chat import InternVLChatModel
 from transformers.models.qwen2.modeling_qwen2 import (
                                                       Qwen2FlashAttention2,
@@ -14,11 +12,10 @@ from transformers.models.qwen2.modeling_qwen2 import (
                                                       Qwen2Model,
                                                       )
 from transformers.modeling_outputs import BaseModelOutputWithPast
-
 from transformers.cache_utils import DynamicCache
 from transformers.cache_utils import Cache
 from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask, _prepare_4d_causal_attention_mask_for_sdpa
-from transformers.utils import (is_flash_attn_2_available, is_flash_attn_greater_or_equal_2_10)
+from transformers.utils import is_flash_attn_2_available
 if is_flash_attn_2_available():
     from flash_attn import flash_attn_func, flash_attn_varlen_func
     from flash_attn.bert_padding import pad_input
@@ -221,11 +218,8 @@ def flash_attn_forward(
         dropout=dropout_rate,
         use_sliding_windows=use_sliding_windows,
     )
-    
     attn_output = attn_output.reshape(bsz, q_len, self.hidden_size).contiguous()
-    
     attn_output = self.o_proj(attn_output)
-    
     
     return attn_output
 
@@ -258,11 +252,8 @@ def decoder_layer_forward(
             (see `past_key_values`).
         past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
     """
-    
     residual = hidden_states
-
     hidden_states = self.input_layernorm(hidden_states)
-
     hidden_states = self.self_attn(
         hidden_states,
         position_ids,
@@ -273,13 +264,9 @@ def decoder_layer_forward(
 
     # Fully Connected
     residual = hidden_states
-
     hidden_states = self.post_attention_layernorm(hidden_states)
-
     hidden_states = self.mlp(hidden_states)
-
     hidden_states = residual + hidden_states
-
     outputs = (hidden_states,)
     
     return outputs
@@ -304,7 +291,6 @@ def qwen2_model_forward(
         output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
     )
     use_cache = use_cache if use_cache is not None else self.config.use_cache
-
     return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
     # retrieve input_ids and inputs_embeds
@@ -438,8 +424,7 @@ def qwen2_model_forward(
 def replace_llm_model_forward():
     Qwen2Model.forward = qwen2_model_forward
 
-def build_graphed_model(model: InternVLChatModel,cuda_graph_module:str,cuda_graph_layer_num:int,max_seq_len: int, micro_bs: int, hidden_size: int):
-       
+def build_graphed_model(model: InternVLChatModel,cuda_graph_module:str,cuda_graph_layer_num:int,max_seq_len: int, micro_bs: int, hidden_size: int):  
     mempool = torch.cuda.graph_pool_handle()
     
     input_hidden_states = torch.randn(micro_bs,max_seq_len, hidden_size,dtype=torch.bfloat16,device=torch.cuda.current_device(),requires_grad=True)
@@ -451,8 +436,7 @@ def build_graphed_model(model: InternVLChatModel,cuda_graph_module:str,cuda_grap
     if cuda_graph_module == 'self_attn':
         for idx, decoder_layer in enumerate(target_model.layers):
             if idx >= cuda_graph_layer_num:
-                break
-            
+                break       
             self_attn_origin = decoder_layer.self_attn
             decoder_layer.self_attn = torch.cuda.make_graphed_callables(self_attn_origin, (input_hidden_states, input_position_ids, input_cu_seqlens_k,),pool=mempool)
             del self_attn_origin
@@ -464,8 +448,8 @@ def build_graphed_model(model: InternVLChatModel,cuda_graph_module:str,cuda_grap
                 layers_module.append(decoder_layer)
                 static_inputs.append((input_hidden_states, input_position_ids, input_cu_seqlens_k,))
             else:
-                break
-            
+                break    
+        
         callables = tuple(layers_module)
         static_inputs = tuple(static_inputs)
         

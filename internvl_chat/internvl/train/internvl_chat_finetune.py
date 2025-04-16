@@ -14,7 +14,6 @@ import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
-
 from typing import Dict, Literal, Optional
 
 import numpy as np
@@ -39,11 +38,10 @@ from internvl.patch import (concat_pad_data_collator,
                             replace_llama_rmsnorm_with_fused_rmsnorm,
                             replace_phi3_attention_class,
                             replace_qwen2_attention_class,
-
+                            replace_train_dataloader, replace_train_sampler,
                             replace_decoder_layer_forward,
                             replace_qwen2_self_attn_forward,
-                            replace_llm_model_forward,
-                            replace_train_dataloader, replace_train_sampler)
+                            replace_llm_model_forward)
 from internvl.train.constants import (BOX_END_TOKEN, BOX_START_TOKEN,
                                       IMG_CONTEXT_TOKEN, IMG_END_TOKEN,
                                       IMG_START_TOKEN, QUAD_END_TOKEN,
@@ -65,7 +63,6 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.logging import (enable_default_handler,
                                         enable_explicit_format, set_verbosity)
-
 from trainer import CustomTrainer
 
 # Try to import petrel_client for image loading, fallback to PIL if unavailable
