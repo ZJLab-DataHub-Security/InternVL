@@ -74,5 +74,3 @@ torchrun \
   --cuda_graph_layer_num 24 \
   --report_to "tensorboard" \
   2>&1 | tee -a "${OUTPUT_DIR}/training_log.txt"
-
-# --deepspeed "zero_stage1_config.json" \ 

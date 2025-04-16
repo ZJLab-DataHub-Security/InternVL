@@ -980,7 +980,7 @@ def main():
         logger.info('Building InternVLChatModel...')
         model = InternVLChatModel(internvl_chat_config, vision_model, llm)
     model.img_context_token_id = img_context_token_id
-    
+
     assert model.config.downsample_ratio == data_args.down_sample_ratio
 
     if model_args.mlp_path is not None:
@@ -1089,9 +1089,10 @@ def main():
             collator = partial(concat_pad_data_collator, max_item_length=tokenizer.model_max_length)
         else:
             collator = concat_pad_data_collator
+    
     if model_args.use_llm_compile:
-        # torch._dynamo.config.compiled_autograd = True
         model.language_model = torch.compile(model=model.language_model,mode=model_args.llm_compile_mode)
+    
     trainer = CustomTrainer(
         model=model,
         args=training_args,

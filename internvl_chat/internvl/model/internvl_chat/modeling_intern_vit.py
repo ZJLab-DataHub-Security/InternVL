@@ -354,7 +354,7 @@ class InternVisionEncoder(nn.Module):
 
         if output_hidden_states:
             encoder_states = encoder_states + (hidden_states,)
-         
+
         if not return_dict:
             return tuple(v for v in [hidden_states, encoder_states] if v is not None)
         return BaseModelOutput(

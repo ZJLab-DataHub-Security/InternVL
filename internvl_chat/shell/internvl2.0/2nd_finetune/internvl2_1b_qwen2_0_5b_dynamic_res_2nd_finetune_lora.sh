@@ -72,6 +72,3 @@ torchrun \
   --llm_compile_mode "max-autotune-no-cudagraphs" \
   --report_to "tensorboard" \
   2>&1 | tee -a "${OUTPUT_DIR}/training_log.txt"
-
-
-#  --deepspeed "zero_stage1_config.json" \

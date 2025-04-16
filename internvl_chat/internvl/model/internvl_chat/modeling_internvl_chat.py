@@ -44,7 +44,7 @@ class InternVLChatModel(PreTrainedModel):
                          'Phi3DecoderLayer', 'Qwen2DecoderLayer']
     _supports_flash_attn_2 = True
     supports_gradient_checkpointing = True
-     
+
     def __init__(self, config: InternVLChatConfig, vision_model=None, language_model=None, use_flash_attn=True):
         super().__init__(config)
 
@@ -85,7 +85,7 @@ class InternVLChatModel(PreTrainedModel):
 
         vit_hidden_size = config.vision_config.hidden_size
         llm_hidden_size = config.llm_config.hidden_size
-        
+
         self.mlp1 = nn.Sequential(
             nn.LayerNorm(vit_hidden_size * int(1 / self.downsample_ratio) ** 2),
             nn.Linear(vit_hidden_size * int(1 / self.downsample_ratio) ** 2, llm_hidden_size),
@@ -157,7 +157,7 @@ class InternVLChatModel(PreTrainedModel):
             loss_reduction_all_gather: Optional[bool] = False,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-        
+
         image_flags = image_flags.squeeze(-1)
         input_embeds = self.language_model.get_input_embeddings()(input_ids).clone()
 
@@ -240,7 +240,7 @@ class InternVLChatModel(PreTrainedModel):
             loss = loss_fct(shift_logits, shift_labels)
             if ignore_flag:
                 loss = loss * 0.0
-        
+
         if not return_dict:
             output = (logits,) + outputs[1:]
             return (loss,) + output if loss is not None else output
@@ -281,7 +281,7 @@ class InternVLChatModel(PreTrainedModel):
                 output_hidden_states=True,
                 return_dict=True).hidden_states[self.select_layer]
         vit_embeds = vit_embeds[:, 1:, :]
-        
+
         h = w = int(vit_embeds.shape[1] ** 0.5)
         vit_embeds = vit_embeds.reshape(vit_embeds.shape[0], h, w, -1)
         vit_embeds = self.pixel_shuffle(vit_embeds, scale_factor=self.downsample_ratio)
