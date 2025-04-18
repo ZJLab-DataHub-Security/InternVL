@@ -41,7 +41,8 @@ from internvl.patch import (concat_pad_data_collator,
                             replace_train_dataloader, replace_train_sampler,
                             replace_decoder_layer_forward,
                             replace_qwen2_self_attn_forward,
-                            replace_llm_model_forward)
+                            replace_llm_model_forward,
+                            replace_language_model_forward)
 from internvl.train.constants import (BOX_END_TOKEN, BOX_START_TOKEN,
                                       IMG_CONTEXT_TOKEN, IMG_END_TOKEN,
                                       IMG_START_TOKEN, QUAD_END_TOKEN,
@@ -63,6 +64,7 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.logging import (enable_default_handler,
                                         enable_explicit_format, set_verbosity)
+from transformers.models.qwen2.modeling_qwen2 import Qwen2RMSNorm
 from trainer import CustomTrainer
 
 # Try to import petrel_client for image loading, fallback to PIL if unavailable
@@ -1091,6 +1093,9 @@ def main():
             collator = concat_pad_data_collator
     
     if model_args.use_llm_compile:
+        replace_language_model_forward()
+        torch._dynamo.disable(Qwen2RMSNorm)
+
         model.language_model = torch.compile(model=model.language_model,mode=model_args.llm_compile_mode)
     
     trainer = CustomTrainer(
