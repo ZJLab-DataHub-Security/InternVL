@@ -42,7 +42,6 @@ def language_model_forward(
     logits = self.custom_lm_head_forward(hidden_states)
     logits = logits.float()
     
-    print(f"----fwj----labels is {labels} in lm fwd.")
     loss = None
     if labels is not None:
         # Shift so that tokens < n predict n
@@ -71,7 +70,6 @@ def language_model_forward(
 @torch._dynamo.disable
 def custom_lm_head_forward(self, hidden_states):
     logits = self.lm_head(hidden_states)
-    
     return logits
 
 def replace_language_model_forward():
