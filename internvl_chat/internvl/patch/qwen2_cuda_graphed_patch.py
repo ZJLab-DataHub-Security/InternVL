@@ -379,7 +379,7 @@ def qwen2_model_forward(
         if output_hidden_states:
             all_hidden_states += (hidden_states,)
         
-        if self.gradient_checkpointing and self.training and (not hasattr(self.config,"recompute_num_layers") or idx < self.config.recompute_num_layers):
+        if self.gradient_checkpointing and self.training:
             layer_outputs = self._gradient_checkpointing_func(
                 decoder_layer.__call__, 
                 hidden_states,
