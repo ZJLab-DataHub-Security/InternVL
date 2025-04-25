@@ -66,9 +66,5 @@ torchrun \
   --ps_version 'v2' \
   --use_cuda_graph True \
   --use_seq_padding True \
-  --cuda_graph_module "decoder_layer" \
-  --cuda_graph_layer_num 24 \
-  --use_llm_compile True \
-  --llm_compile_mode "max-autotune-no-cudagraphs" \
   --report_to "tensorboard" \
   2>&1 | tee -a "${OUTPUT_DIR}/training_log.txt"

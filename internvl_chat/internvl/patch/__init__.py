@@ -20,7 +20,6 @@ from .qwen2_cuda_graphed_patch import (replace_llm_model_forward,
                                        build_graphed_model,
                                        replace_decoder_layer_forward,
                                        replace_qwen2_self_attn_forward)
-from .qwen2_torch_compile_patch import replace_language_model_forward
 from .train_dataloader_patch import replace_train_dataloader
 from .train_sampler_patch import replace_train_sampler
 
@@ -40,5 +39,4 @@ __all__ = ['replace_llama_attn_with_flash_attn',
            'replace_llm_model_forward',
            'build_graphed_model',
            'replace_decoder_layer_forward',
-           'replace_qwen2_self_attn_forward',
-           'replace_language_model_forward']
+           'replace_qwen2_self_attn_forward']

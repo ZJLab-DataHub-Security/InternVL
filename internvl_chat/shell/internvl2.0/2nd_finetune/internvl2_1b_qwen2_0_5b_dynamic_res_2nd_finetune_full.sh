@@ -59,18 +59,11 @@ torchrun \
   --max_seq_length 4096 \
   --do_train True \
   --grad_checkpoint True \
-  --recompute_num_llm_layers 24 \
-  --recompute_num_vision_layers 24 \
   --group_by_length True \
   --dynamic_image_size True \
   --use_thumbnail True \
   --ps_version 'v2' \
   --use_seq_padding True \
-  --max_steps -1 \
-  --use_llm_compile False \
-  --llm_compile_mode "reduce-overhead" \
   --use_cuda_graph False \
-  --cuda_graph_module "self_attn" \
-  --cuda_graph_layer_num 24 \
   --report_to "tensorboard" \
   2>&1 | tee -a "${OUTPUT_DIR}/training_log.txt"
