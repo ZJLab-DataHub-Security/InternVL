@@ -344,7 +344,8 @@ class InternVisionEncoder(nn.Module):
             if self.gradient_checkpointing and self.training:
                 layer_outputs = torch.utils.checkpoint.checkpoint(
                     encoder_layer,
-                    hidden_states)
+                    hidden_states,
+                    preserve_rng_state=False,)
             else:
                 layer_outputs = encoder_layer(
                     hidden_states,

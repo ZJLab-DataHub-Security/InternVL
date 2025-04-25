@@ -38,7 +38,10 @@ from internvl.patch import (concat_pad_data_collator,
                             replace_llama_rmsnorm_with_fused_rmsnorm,
                             replace_phi3_attention_class,
                             replace_qwen2_attention_class,
-                            replace_train_dataloader, replace_train_sampler)
+                            replace_train_dataloader, replace_train_sampler,
+                            replace_decoder_layer_forward,
+                            replace_qwen2_self_attn_forward,
+                            replace_llm_model_forward)
 from internvl.train.constants import (BOX_END_TOKEN, BOX_START_TOKEN,
                                       IMG_CONTEXT_TOKEN, IMG_END_TOKEN,
                                       IMG_START_TOKEN, QUAD_END_TOKEN,
@@ -60,6 +63,7 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.logging import (enable_default_handler,
                                         enable_explicit_format, set_verbosity)
+from trainer import CustomTrainer
 
 # Try to import petrel_client for image loading, fallback to PIL if unavailable
 try:
@@ -82,7 +86,7 @@ warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'true'
-
+os.environ["NCCL_ASYNC_ERROR_HANDLING"] = "0"
 
 @dataclass
 class ModelArguments:
@@ -157,7 +161,14 @@ class ModelArguments:
         default=False,
         metadata={'help': 'Set to True to use the liger kernel.'}
     )
-
+    use_cuda_graph: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "If set to `True`, will use cuda graph to optimize training. "
+        },
+    )
+    
+    
 
 @dataclass
 class DataTrainingArguments:
@@ -263,6 +274,10 @@ class DataTrainingArguments:
     loss_reduction_all_gather: bool = field(
         default=False,
         metadata={'help': 'Whether to gather all during loss reduction. Default is False.'},
+    )
+    use_seq_padding: bool = field(
+        default=False,
+        metadata={'help': 'Whether to padding to max_seq_length, but it must be True when use_cuda_graph is True. Default is False.'},
     )
 
 
@@ -948,6 +963,11 @@ def main():
         logger.info(message)
     logger.info('Finished')
 
+    if model_args.use_cuda_graph:
+        replace_llm_model_forward()
+        replace_decoder_layer_forward()
+        replace_qwen2_self_attn_forward()
+
     patch_size = model.config.vision_config.patch_size
     logger.info(f'model.config.force_image_size: {model.config.force_image_size}')
     logger.info(f'data_args.force_image_size: {data_args.force_image_size}')
@@ -976,8 +996,10 @@ def main():
     model.vision_model.gradient_checkpointing = True
     model.vision_model.encoder.gradient_checkpointing = True
     if model_args.grad_checkpoint:
-        model.language_model._set_gradient_checkpointing()
-
+        gradient_checkpointing_kwargs = {"use_reentrant": False,"preserve_rng_state": False}
+        gradient_checkpointing_func = partial(torch.utils.checkpoint.checkpoint, **gradient_checkpointing_kwargs)
+        model.language_model._set_gradient_checkpointing(gradient_checkpointing_func=gradient_checkpointing_func)
+        
     train_dataset = build_datasets(
         data_args, tokenizer, tcs_loader, model, group_by_length=training_args.group_by_length,
         dynamic_image_size=data_args.dynamic_image_size, use_thumbnail=data_args.use_thumbnail,
@@ -1036,15 +1058,19 @@ def main():
             loss_reduction_all_gather=data_args.loss_reduction_all_gather,
         )
     else:
-        collator = concat_pad_data_collator
+        if data_args.use_seq_padding:
+            collator = partial(concat_pad_data_collator, max_item_length=tokenizer.model_max_length)
+        else:
+            collator = concat_pad_data_collator
 
-    trainer = Trainer(
+    trainer = CustomTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset if training_args.do_train else None,
         eval_dataset=None,
         tokenizer=tokenizer,
         data_collator=collator,
+        use_cuda_graph=model_args.use_cuda_graph,
     )
 
     # Training
