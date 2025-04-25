@@ -424,7 +424,7 @@ def qwen2_model_forward(
 def replace_llm_model_forward():
     Qwen2Model.forward = qwen2_model_forward
 
-def build_graphed_model(model: InternVLChatModel,cuda_graph_module:str,cuda_graph_layer_num:int,max_seq_len: int, micro_bs: int, hidden_size: int):  
+def build_graphed_model(model: InternVLChatModel,max_seq_len: int, micro_bs: int, hidden_size: int):  
     mempool = torch.cuda.graph_pool_handle()
     
     input_hidden_states = torch.randn(micro_bs,max_seq_len, hidden_size,dtype=torch.bfloat16,device=torch.cuda.current_device(),requires_grad=True)
@@ -433,28 +433,18 @@ def build_graphed_model(model: InternVLChatModel,cuda_graph_module:str,cuda_grap
 
     target_model = model.language_model.base_model.model.model if model.config.use_llm_lora else model.language_model.model
 
-    if cuda_graph_module == 'self_attn':
-        for idx, decoder_layer in enumerate(target_model.layers):
-            if idx >= cuda_graph_layer_num:
-                break       
-            self_attn_origin = decoder_layer.self_attn
-            decoder_layer.self_attn = torch.cuda.make_graphed_callables(self_attn_origin, (input_hidden_states, input_position_ids, input_cu_seqlens_k,),pool=mempool)
-            del self_attn_origin
-    if cuda_graph_module == 'decoder_layer':
-        static_inputs = []
-        layers_module = []
-        for idx, decoder_layer in enumerate(target_model.layers):
-            if idx < cuda_graph_layer_num:
-                layers_module.append(decoder_layer)
-                static_inputs.append((input_hidden_states, input_position_ids, input_cu_seqlens_k,))
-            else:
-                break    
-        
-        callables = tuple(layers_module)
-        static_inputs = tuple(static_inputs)
-        
-        graphed_layers = torch.cuda.make_graphed_callables(callables,static_inputs,pool = mempool)
-        
-        for idx in range(cuda_graph_layer_num):
-            target_model.layers[idx] = graphed_layers[idx]
-        del callables
+    static_inputs = []
+    layers_module = []
+    for idx, decoder_layer in enumerate(target_model.layers):
+        layers_module.append(decoder_layer)
+        static_inputs.append((input_hidden_states, input_position_ids, input_cu_seqlens_k,))   
+    
+    callables = tuple(layers_module)
+    static_inputs = tuple(static_inputs)
+    
+    graphed_layers = torch.cuda.make_graphed_callables(callables,static_inputs,pool = mempool)
+    
+    for idx in range(target_model.config.num_hidden_layers):
+        target_model.layers[idx] = graphed_layers[idx]
+    del callables
+    del static_inputs

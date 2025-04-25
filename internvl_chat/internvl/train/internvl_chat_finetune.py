@@ -177,24 +177,7 @@ class ModelArguments:
             "help": "If set to `True`, will use cuda graph to optimize training. "
         },
     )
-    cuda_graph_module: Literal['self_attn', 'decoder_layer'] = field(
-        default='self_attn',
-        metadata={'help': 'Specify the module of cuda graph opt apply to, Only support apply cuda graph to llm. Default is self_attn.'}
-    )
-    cuda_graph_layer_num: int = field(
-        default=0,
-        metadata={'help': "Set the num of layers which cuda graph applied to. Default is 0."}
-    )
-    use_llm_compile: Optional[bool] = field(
-        default=False,
-        metadata={
-            "help": "If set to `True`, will use torch.compile to optimize llm model. "
-        },
-    )
-    llm_compile_mode: Literal['default', 'reduce-overhead', 'max-autotune', 'max-autotune-no-cudagraphs'] = field(
-        default='default',
-        metadata={'help': 'Specify the mode of torch.compile apply to, when use_llm_compile is True. Default is default.'}
-    )
+    
     
 
 @dataclass
@@ -1091,12 +1074,7 @@ def main():
             collator = partial(concat_pad_data_collator, max_item_length=tokenizer.model_max_length)
         else:
             collator = concat_pad_data_collator
-    
-    if model_args.use_llm_compile:
-        replace_language_model_forward()
-        torch._dynamo.disable(Qwen2RMSNorm)
-        model.language_model = torch.compile(model=model.language_model,mode=model_args.llm_compile_mode)
-    
+
     trainer = CustomTrainer(
         model=model,
         args=training_args,
@@ -1105,8 +1083,6 @@ def main():
         tokenizer=tokenizer,
         data_collator=collator,
         use_cuda_graph=model_args.use_cuda_graph,
-        cuda_graph_module=model_args.cuda_graph_module,
-        cuda_graph_layer_num=model_args.cuda_graph_layer_num,
     )
 
     # Training
